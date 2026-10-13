@@ -1,0 +1,22 @@
+- name: Thư mục ứng dụng
+  ansible.builtin.file:
+    path: /opt/shoplite
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: "0755"
+
+- name: Đồng bộ mã nguồn và file build
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../{{ item }}"
+    dest: "/opt/shoplite/{{ item }}"
+    owner: "{{ ansible_user }}"
+    mode: preserve
+  loop: [app/, Dockerfile, .dockerignore, docker-compose.yml]
+  register: src_files
+
+- name: Chạy stack Compose
+  community.docker.docker_compose_v2:
+    project_src: /opt/shoplite
+    state: present
+    # chỉ build lại khi mã nguồn thay đổi → lần chạy sau không báo changed
+    build: "{{ 'always' if src_files.changed else 'policy' }}"

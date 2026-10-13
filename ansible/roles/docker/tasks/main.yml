@@ -1,0 +1,43 @@
+- name: Cài gói phụ thuộc
+  ansible.builtin.apt:
+    name: [ca-certificates, curl]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600        # quan trọng cho idempotent
+
+- name: Đảm bảo thư mục keyrings
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Tải khóa GPG Docker
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Thêm repo Docker
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    filename: docker
+
+- name: Cài Docker Engine + Compose plugin
+  ansible.builtin.apt:
+    name: [docker-ce, docker-ce-cli, containerd.io, docker-buildx-plugin, docker-compose-plugin]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  notify: restart docker
+
+- name: Bật service docker
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Thêm user nts vào group docker
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true                  # thiếu append thì user mất hết group cũ, kể cả sudo!

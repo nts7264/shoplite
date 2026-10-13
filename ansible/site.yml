@@ -1,0 +1,12 @@
+---
+- hosts: all
+  become: true
+  roles: [docker, awstools]
+
+- hosts: ci
+  become: true
+  roles: [jenkins]
+
+- hosts: staging
+  become: true
+  roles: [shoplite]

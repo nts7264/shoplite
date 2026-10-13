@@ -1,0 +1,82 @@
+- name: Cài Java 21 và fontconfig
+  ansible.builtin.apt:
+    name: [openjdk-21-jre-headless, fontconfig]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Khóa repo Jenkins
+  ansible.builtin.get_url:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+    dest: /etc/apt/keyrings/jenkins-keyring.asc
+    mode: "0644"
+
+- name: Repo Jenkins
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+    filename: jenkins
+
+- name: Thư mục override cho systemd
+  ansible.builtin.file:
+    path: /etc/systemd/system/jenkins.service.d
+    state: directory
+    mode: "0755"
+      
+- name: Bỏ setup wizard (admin được tạo bằng script bên dưới)
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/jenkins.service.d/override.conf
+    content: |
+      [Service]
+      Environment="JAVA_OPTS=-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false"
+    mode: "0644"
+  notify: restart jenkins
+
+- name: Cài Jenkins
+  ansible.builtin.apt:
+    name: jenkins
+    state: present
+    update_cache: true
+  notify: restart jenkins
+
+- name: Thư mục init script của Jenkins
+  ansible.builtin.file:
+    path: /var/lib/jenkins/init.groovy.d
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: "0755"
+
+- name: Tạo admin từ mật khẩu trong vault
+  ansible.builtin.template:
+    src: admin.groovy.j2
+    dest: /var/lib/jenkins/init.groovy.d/admin.groovy
+    owner: jenkins
+    group: jenkins
+    mode: "0600"
+  no_log: true                    # không in mật khẩu ra log
+  notify: restart jenkins
+
+- name: Thêm jenkins vào group docker
+  ansible.builtin.user:
+    name: jenkins
+    groups: docker
+    append: true
+  notify: restart jenkins         # Jenkins phải restart mới nhận group mới (đây chính là lỗi T6!)
+
+# ---- kubectl qua repo chính thức ----
+- name: Khóa repo Kubernetes
+  ansible.builtin.get_url:
+    url: "https://pkgs.k8s.io/core:/stable:/{{ kubectl_minor }}/deb/Release.key"
+    dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+    mode: "0644"
+
+- name: Repo Kubernetes
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.asc] https://pkgs.k8s.io/core:/stable:/{{ kubectl_minor }}/deb/ /"
+    filename: kubernetes
+
+- name: Cài kubectl
+  ansible.builtin.apt:
+    name: kubectl
+    state: present
+    update_cache: true

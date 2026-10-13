@@ -1,0 +1,26 @@
+# ---- AWS CLI v2 ----
+
+- name: Công cụ cần cho việc cài AWS CLI
+  ansible.builtin.apt:
+    name: [unzip]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Tải AWS CLI v2
+  ansible.builtin.get_url:
+    url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+    dest: /tmp/awscliv2.zip
+    mode: "0644"
+
+- name: Giải nén
+  ansible.builtin.unarchive:
+    src: /tmp/awscliv2.zip
+    dest: /tmp
+    remote_src: true
+    creates: /tmp/aws/install
+
+- name: Cài AWS CLI
+  ansible.builtin.command: /tmp/aws/install
+  args:
+    creates: /usr/local/bin/aws   # có rồi thì bỏ qua → idempotent
