@@ -1,6 +1,6 @@
 pipeline {
   agent any
-  options { timestamps(); disableConcurrentBuilds() }
+  options { disableConcurrentBuilds() }
   environment {
     AWS_REGION   = 'ap-northeast-1'
     AWS_PAGER    = ''
