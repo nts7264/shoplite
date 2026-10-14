@@ -2,3 +2,6 @@
 *.retry
 __pycache__/
 .env
+*.pem
+state.sh
+env.sh
