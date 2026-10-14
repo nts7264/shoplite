@@ -1,0 +1,9 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer   # chờ pod được xếp lịch rồi mới tạo EBS, để EBS cùng AZ với node
+reclaimPolicy: Delete
+parameters:
+  type: gp3

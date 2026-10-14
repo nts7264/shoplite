@@ -1,0 +1,28 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: shoplite-prod
+  region: ap-northeast-1
+
+iam:
+  withOIDC: true                 # bắt buộc cho IRSA (EBS CSI, LB Controller)
+
+vpc:
+  nat:
+    gateway: Disable             # tiết kiệm ~0,06 USD/giờ, node nằm ở public subnet nên không cần NAT
+
+managedNodeGroups:
+  - name: ng-1
+    instanceType: t3.medium
+    desiredCapacity: 2
+    minSize: 2
+    maxSize: 3
+    volumeSize: 20
+
+addons:
+  - name: vpc-cni
+  - name: coredns
+  - name: kube-proxy
+  - name: aws-ebs-csi-driver     # 5.2: thiếu addon này thì PVC kẹt ở Pending
+    wellKnownPolicies:
+      ebsCSIController: true     # eksctl tự tạo IAM role (IRSA) cho driver
